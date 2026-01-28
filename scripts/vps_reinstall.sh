@@ -20,6 +20,12 @@ docker build -t "${IMAGE}" "${ROOT_DIR}"
 echo "[2/5] Ensuring bind mount dirs exist" >&2
 mkdir -p "${ROOT_DIR}/configs" "${ROOT_DIR}/logs"
 
+# Seed example configs if missing (do not overwrite existing configs).
+if [[ ! -f "${ROOT_DIR}/configs/antena-play.json" && -f "${ROOT_DIR}/configs/antena-play.example.jsonc" ]]; then
+  cp "${ROOT_DIR}/configs/antena-play.example.jsonc" "${ROOT_DIR}/configs/antena-play.json"
+  echo "Seeded configs/antena-play.json from example (credentials empty)" >&2
+fi
+
 echo "[3/5] Fixing permissions for UID/GID 1000" >&2
 if command -v sudo >/dev/null 2>&1; then
   sudo chown -R 1000:1000 "${ROOT_DIR}/configs" "${ROOT_DIR}/logs" || true

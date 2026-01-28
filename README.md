@@ -102,6 +102,11 @@ AntenaPlay requires valid credentials.
 
 - Set them in `configs/antena-play.json` under `auth.username` and `auth.password` (this avoids putting credentials in shell history).
 - Do not commit real credentials into git; keep `configs/` only on the VPS and mount it into the container.
+
+This repo ships an example file you can copy:
+
+- `cp configs/antena-play.example.jsonc configs/antena-play.json`
+- Edit `configs/antena-play.json` and fill `auth.username` + `auth.password` on the VPS only.
 - Then refresh tokens via API:
 	- `curl -sS -X POST -H 'content-type: application/json' -d '{}' http://localhost:8090/antena-play/login`
 - Then update channels:
