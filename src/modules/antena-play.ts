@@ -72,13 +72,14 @@ class ModuleInstance extends ModuleClass implements ModuleType {
           validateStatus: (status: number) => status == 200 || 401,
         },
       );
-      const token =
-        auth_token.data?.data?.token ||
+      const token = auth_token.data?.data?.token ||
         // fallback shapes (API changes)
         (auth_token.data as unknown as { token?: string })?.token ||
-        (auth_token.data as unknown as { data?: { access_token?: string } })?.data
+        (auth_token.data as unknown as { data?: { access_token?: string } })
+          ?.data
           ?.access_token ||
-        (auth_token.data as unknown as { access_token?: string })?.access_token ||
+        (auth_token.data as unknown as { access_token?: string })
+          ?.access_token ||
         "";
       const apiError = auth_token.data?.error || "";
 
@@ -233,12 +234,19 @@ class ModuleInstance extends ModuleClass implements ModuleType {
       this.logger("searchShow", shows.data);
       const list: IVODData[] = [];
       shows.data.data.forEach((l) => {
+        const categoryRaw = String(
+          (l as unknown as { ivm_category?: string })
+            .ivm_category || "",
+        );
+        const category = this.normalizeCategory(categoryRaw);
         list.push(
           {
             id: l.id.toString(),
             name: l.show_name,
             date: l.last_video_date,
             img: l.main_image,
+            category,
+            categoryRaw,
             link: `/${this.MODULE_ID}/vod/${l.id}`,
           },
         );
@@ -300,12 +308,19 @@ class ModuleInstance extends ModuleClass implements ModuleType {
       this.logger("getVOD_List", shows.data);
       const list: IVODData[] = [];
       shows.data.data.forEach((l) => {
+        const categoryRaw = String(
+          (l as unknown as { ivm_category?: string })
+            .ivm_category || "",
+        );
+        const category = this.normalizeCategory(categoryRaw);
         list.push(
           {
             id: l.id.toString(),
             name: l.show_name,
             date: l.last_video_date,
             img: l.main_image,
+            category,
+            categoryRaw,
             link: `/${this.MODULE_ID}/vod/${l.id}`,
           },
         );
@@ -476,6 +491,15 @@ class ModuleInstance extends ModuleClass implements ModuleType {
     } catch (error) {
       return Promise.reject(this.logger("getVOD_EP", error, true));
     }
+  }
+
+  private normalizeCategory(categoryRaw: string): string {
+    const v = (categoryRaw || "").toLowerCase().trim();
+    if (!v) return "unknown";
+    if (v.includes("film") || v.includes("movie")) return "filme";
+    if (v.includes("serial") || v.includes("series")) return "seriale";
+    if (v.includes("show") || v.includes("emisi")) return "emisiuni";
+    return v;
   }
 }
 

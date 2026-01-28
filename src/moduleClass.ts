@@ -118,6 +118,8 @@ export interface IVODData {
   date?: Date | string;
   link: string;
   img: string;
+  category?: string;
+  categoryRaw?: string;
 }
 
 export interface IChannelsList {
@@ -489,7 +491,8 @@ class ModuleFunctions {
         db.data[cache].lastupdated = new Date();
         if (db.data.length > maxEntries) {
           db.data.sort((a, b) =>
-            (new Date(b.lastupdated)).getTime() - (new Date(a.lastupdated)).getTime()
+            (new Date(b.lastupdated)).getTime() -
+            (new Date(a.lastupdated)).getTime()
           );
           db.data = db.data.slice(0, maxEntries);
         }
@@ -503,7 +506,8 @@ class ModuleFunctions {
         });
         if (db.data.length > maxEntries) {
           db.data.sort((a, b) =>
-            (new Date(b.lastupdated)).getTime() - (new Date(a.lastupdated)).getTime()
+            (new Date(b.lastupdated)).getTime() -
+            (new Date(a.lastupdated)).getTime()
           );
           db.data = db.data.slice(0, maxEntries);
         }

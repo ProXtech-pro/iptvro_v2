@@ -192,6 +192,11 @@ Example (AntenaPlay on port 8090):
 
 `GET /<module>/vod`
 
+For AntenaPlay, each item includes:
+
+- `categoryRaw`: category string reported by the upstream API
+- `category`: a simplified group derived from `categoryRaw` (e.g. `filme`, `seriale`, `emisiuni`)
+
 2) Get episodes for one show:
 
 `GET /<module>/vod/<showId>`
