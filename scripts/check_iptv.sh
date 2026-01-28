@@ -193,10 +193,20 @@ UPSTREAM_HEADERS=(
 UPSTREAM_DATA='email=test@example.com&password=wrong'
 UPSTREAM_URL='https://restapi.antenaplay.ro/v1/auth/login'
 
-UPSTREAM_V4="$(curl -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 6 --max-time 12 -X POST "${UPSTREAM_URL}" "${UPSTREAM_HEADERS[@]}" --data "${UPSTREAM_DATA}" || true)"
-UPSTREAM_V6="$(curl -6 -sS -o /dev/null -w '%{http_code}' --connect-timeout 6 --max-time 12 -X POST "${UPSTREAM_URL}" "${UPSTREAM_HEADERS[@]}" --data "${UPSTREAM_DATA}" || true)"
+http_code() {
+  local ipflag="$1"
+  local code
+  code="$(curl "${ipflag}" -sS -o /dev/null -w '%{http_code}' --connect-timeout 6 --max-time 12 -X POST "${UPSTREAM_URL}" "${UPSTREAM_HEADERS[@]}" --data "${UPSTREAM_DATA}" 2>/dev/null || true)"
+  echo "${code:-000}"
+}
+
+UPSTREAM_V4="$(http_code -4)"
+UPSTREAM_V6="$(http_code -6)"
 echo "Upstream IPv4 HTTP: ${UPSTREAM_V4:-<failed>}"
 echo "Upstream IPv6 HTTP: ${UPSTREAM_V6:-<failed>}"
+if [[ "${UPSTREAM_V4}" != "000" && "${UPSTREAM_V6}" == "000" ]]; then
+  echo "Note: IPv6 check failed (no IPv6/AAAA route), IPv4 is what matters here."
+fi
 
 hr
 echo "6) ANTENA-PLAY UPDATE CHANNELS"
