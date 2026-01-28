@@ -170,10 +170,14 @@ import json,sys
 j=json.load(open(sys.argv[1],'r',encoding='utf-8'))
 data=j.get('data')
 has_token = isinstance(data, list) and len(data) > 0 and bool(data[0])
+err = j.get('error')
+if isinstance(err, str) and len(err) > 180:
+  err = err[:180] + '...'
 print({
   "status": j.get("status"),
   "module": j.get("module"),
   "has_token": has_token,
+  "error": err,
 })
 PY
 
