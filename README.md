@@ -219,6 +219,12 @@ Example (AntenaPlay on port 8090):
 
 - `http://<server-ip>:8090/antena-play/vod`
 
+### Python: build a VOD library + download MP4
+
+If you want an exported VOD library (films/series, seasons/episodes), cached API collection, and optional MP4 downloads via `ffmpeg`, see:
+
+- `scripts/python/README.md`
+
 ---
 
 ## Module info
