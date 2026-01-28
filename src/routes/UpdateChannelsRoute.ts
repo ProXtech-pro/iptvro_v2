@@ -19,8 +19,16 @@ router.get(
         `${Deno.cwd()}/src/modules/${context.params.module}.ts`
       )).default();
       const channels = await mod.getChannels();
-      if (!channels) {
-        throw "No data received from method!";
+      if (!channels || Object.keys(channels).length === 0) {
+        context.response.status = 400;
+        context.response.body = new Response(
+          "ERROR",
+          context.params.module,
+          null,
+          undefined,
+          "No channels received (likely not logged in / token invalid)",
+        );
+        return;
       }
       //save config
       await mod.setConfig("chList", channels);

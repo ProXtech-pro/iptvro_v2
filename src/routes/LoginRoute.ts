@@ -31,10 +31,11 @@ router.post(
       result.username || config.username,
       result.password || config.password,
     );
-    if (authTokens) {
+    const hasValidToken = Array.isArray(authTokens) && Boolean(authTokens[0]);
+    if (hasValidToken) {
       logger(
         "login",
-        `'${context.params.module}' login success, got authTokens: ${authTokens}`,
+        `'${context.params.module}' login success`,
       );
       config.authTokens = authTokens;
       config.lastupdated = new Date();
@@ -45,13 +46,13 @@ router.post(
         authTokens,
       );
     } else {
-      context.response.status = 400;
+      context.response.status = 401;
       context.response.body = new Response(
         "ERROR",
         context.params.module,
         null,
         undefined,
-        `Authentication failed for module '${context.params.module}'`,
+        `Authentication failed for module '${context.params.module}' (token missing)` ,
       );
     }
   },

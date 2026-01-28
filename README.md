@@ -64,6 +64,51 @@ The following command should ensure they have the right permissions
 
 `chown -R 1000:1000 configs; chown -R 1000:1000 logs`
 
+### VPS troubleshooting / reinstall (Docker)
+
+Most VPS issues come from (1) port 3000 already used, (2) broken/old image, or (3) volume permissions (the container runs as UID/GID 1000).
+
+- Ensure folders exist and are writable by UID 1000:
+	- `mkdir -p configs logs`
+	- `sudo chown -R 1000:1000 configs logs`
+- Update to the latest image and restart:
+	- `docker compose pull && docker compose up -d`
+- Check if the container is restarting / unhealthy:
+	- `docker compose ps`
+	- `docker compose logs --tail=200 -f`
+- If it fails to start, check if port 3000 is already in use:
+	- `sudo lsof -i :3000` (or change the mapping in `docker-compose.yaml`, e.g. `8090:3000`)
+- Quick endpoint check from the VPS host:
+	- `curl -sS http://127.0.0.1:3000/modules | head`
+
+If you paste the output of `docker compose ps` and the last ~200 lines from `docker compose logs --tail=200`, I can tell you exactly what broke.
+
+### VPS reinstall from git (recommended)
+
+If you want the latest fixes without waiting for the prebuilt GHCR image to update, build and run from this repository on your VPS:
+
+- `git clone https://github.com/rednblkx/iptvro_v2.git && cd iptvro_v2`
+- `bash scripts/vps_reinstall.sh`
+
+This will build a local image, create/mount `configs/` + `logs/`, set UID/GID 1000 permissions, and run the container on port `8090`.
+
+After install, run diagnostics:
+
+- `bash scripts/check_iptv.sh 8090`
+
+### AntenaPlay credentials (recommended)
+
+AntenaPlay requires valid credentials.
+
+- Set them in `configs/antena-play.json` under `auth.username` and `auth.password` (this avoids putting credentials in shell history).
+- Do not commit real credentials into git; keep `configs/` only on the VPS and mount it into the container.
+- Then refresh tokens via API:
+	- `curl -sS -X POST -H 'content-type: application/json' -d '{}' http://localhost:8090/antena-play/login`
+- Then update channels:
+	- `curl -sS http://localhost:8090/antena-play/updatechannels`
+- Validate:
+	- `curl -sS http://localhost:8090/antena-play/live | head`
+
 ## Permissions
 
 Deno needs the following permissions to run this project:

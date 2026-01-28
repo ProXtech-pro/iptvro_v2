@@ -12,6 +12,7 @@ import { path } from "https://deno.land/x/eta@v1.12.3/file-methods.ts";
 import { pathToFileURL } from "https://dev.jspm.io/npm:@jspm/core@2.0.1/nodelibs/url";
 import { logger } from "./helpers/logger.ts";
 const __dirname = Deno.cwd();
+const LOCAL_PORT = Number(Deno.env.get("PORT")) || 3000;
 
 type cache = {
   name: string;
@@ -223,7 +224,7 @@ export async function rewritePlaylist(
           m3u8Select(
             initm3u8,
             cors
-              ? `http://localhost:3000/cors/${
+              ? `http://127.0.0.1:${LOCAL_PORT}/cors/${
                 stream.stream.match(/(.*)\/.*/)
                   ?.[1]
               }`
@@ -233,7 +234,7 @@ export async function rewritePlaylist(
         const finalP = m3uFixURL(
           q_m3u8.data,
           cors
-            ? `http://localhost:3000/cors/${
+            ? `http://127.0.0.1:${LOCAL_PORT}/cors/${
               q_m3u8.config.url?.match(/(.*)\/.*/)
                 ?.[1]
             }`
@@ -245,7 +246,7 @@ export async function rewritePlaylist(
           m3uFixURL(
             initm3u8,
             cors
-              ? `http://localhost:3000/cors/${
+              ? `http://127.0.0.1:${LOCAL_PORT}/cors/${
                 stream.stream.match(/(.*)\/.*/)
                   ?.[1]
               }`

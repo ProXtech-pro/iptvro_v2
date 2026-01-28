@@ -475,6 +475,7 @@ class ModuleFunctions {
     data: { stream: string; proxy?: string },
   ): Promise<void> {
     try {
+      const maxEntries = Number(Deno.env.get("CACHE_MAX_ENTRIES")) || 2000;
       const adapter = new JSONFile<cache[]>(
         path.join(__dirname, "configs", `cache.json`),
       );
@@ -486,6 +487,12 @@ class ModuleFunctions {
       if (cache && cache !== -1) {
         db.data[cache].data = data;
         db.data[cache].lastupdated = new Date();
+        if (db.data.length > maxEntries) {
+          db.data.sort((a, b) =>
+            (new Date(b.lastupdated)).getTime() - (new Date(a.lastupdated)).getTime()
+          );
+          db.data = db.data.slice(0, maxEntries);
+        }
         return Promise.resolve(await db.write());
       } else {
         db.data.push({
@@ -494,6 +501,12 @@ class ModuleFunctions {
           module: this.MODULE_ID,
           lastupdated: new Date(),
         });
+        if (db.data.length > maxEntries) {
+          db.data.sort((a, b) =>
+            (new Date(b.lastupdated)).getTime() - (new Date(a.lastupdated)).getTime()
+          );
+          db.data = db.data.slice(0, maxEntries);
+        }
         return Promise.resolve(await db.write());
       }
     } catch (error) {

@@ -72,16 +72,30 @@ class ModuleInstance extends ModuleClass implements ModuleType {
           validateStatus: (status: number) => status == 200 || 401,
         },
       );
-      this.logger("login", auth_token.data);
-      const authTokens = [
-        auth_token.data?.data?.token || "",
-        auth_token.data?.data ? crypto.randomUUID() : "",
-      ];
-      if (!auth_token.data.error) {
-        return Promise.resolve(authTokens);
-      } else {
-        return Promise.reject(auth_token.data.error);
+      const token =
+        auth_token.data?.data?.token ||
+        // fallback shapes (API changes)
+        (auth_token.data as unknown as { token?: string })?.token ||
+        (auth_token.data as unknown as { data?: { access_token?: string } })?.data
+          ?.access_token ||
+        (auth_token.data as unknown as { access_token?: string })?.access_token ||
+        "";
+      const apiError = auth_token.data?.error || "";
+
+      if (apiError) {
+        return Promise.reject(apiError);
       }
+
+      if (!token) {
+        return Promise.reject(
+          `AntenaPlay login failed (no token, status ${auth_token.status})`,
+        );
+      }
+
+      return Promise.resolve([
+        token,
+        crypto.randomUUID(),
+      ]);
     } catch (error) {
       this.logger("login", error, true);
       return Promise.reject(

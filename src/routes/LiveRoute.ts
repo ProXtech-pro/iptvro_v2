@@ -7,6 +7,18 @@ import * as Loader from "../loader.ts";
 
 const router = new Router();
 
+function getModulePrefixFromPath(pathname: string): string {
+  // Expected forms:
+  //   /<module>/live
+  //   /<module>/live/index.m3u8
+  //   /live
+  //   /live/index.m3u8
+  const liveIdx = pathname.indexOf("/live");
+  if (liveIdx <= 0) return "";
+  const prefix = pathname.slice(0, liveIdx);
+  return prefix === "/" ? "" : prefix;
+}
+
 /* A simple API that returns a stream URL for a given channel. */
 router.get(
   `/live/:playlist(index.m3u8)?`,
@@ -19,6 +31,7 @@ router.get(
       `${Deno.cwd()}/src/modules/${context.params.module}.ts`
     )).default();
     if (context.params.playlist == "index.m3u8") {
+      const modulePrefix = getModulePrefixFromPath(context.request.url.pathname);
       const playlist = [];
       playlist.push(`#EXTM3U`);
       const ch = await mod.getChannels();
@@ -27,7 +40,7 @@ router.get(
           `#EXTINF:-1,${ch[channel].name}`,
         );
         playlist.push(
-          `http://${context.request.url.host}/live/${channel}/index.m3u8`,
+          `http://${context.request.url.host}${modulePrefix}/live/${channel}/index.m3u8`,
         );
       }
       // playlist.push(`#EXT-X-ENDLIST`);
@@ -87,9 +100,10 @@ router.get(
             headers: data.drm?.headers || null,
           });
         } else {
+          const modulePrefix = getModulePrefixFromPath(context.request.url.pathname);
           context.render("player.ejs", {
             stream:
-              `//${context.request.url.host}/live/${context.params.channel}/index.m3u8`,
+              `//${context.request.url.host}${modulePrefix}/live/${context.params.channel}/index.m3u8`,
             proxy: "",
             headers: null,
           });
