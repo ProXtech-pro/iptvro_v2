@@ -21,6 +21,12 @@ detect_container() {
 CONTAINER_NAME="$(detect_container || true)"
 BASE_URL="http://127.0.0.1:${PORT}"
 
+detect_mount_source() {
+  local container="$1"
+  local dest="$2"
+  docker inspect -f "{{range .Mounts}}{{if eq .Destination \"${dest}\"}}{{.Source}}{{end}}{{end}}" "$container" 2>/dev/null || true
+}
+
 hr() { echo "------------------------------------------"; }
 
 echo "=========================================="
@@ -51,6 +57,17 @@ if [[ -n "${MEM_USAGE}" ]]; then
   echo "Memory usage: ${MEM_USAGE}"
 fi
 
+CONFIGS_MOUNT="$(detect_mount_source "${CONTAINER_NAME}" "/app/configs")"
+LOGS_MOUNT="$(detect_mount_source "${CONTAINER_NAME}" "/app/logs")"
+if [[ -n "${CONFIGS_MOUNT}" ]]; then
+  echo "Configs mount: ${CONFIGS_MOUNT} -> /app/configs"
+else
+  echo "Configs mount: <not detected> (container may be using internal /app/configs)"
+fi
+if [[ -n "${LOGS_MOUNT}" ]]; then
+  echo "Logs mount: ${LOGS_MOUNT} -> /app/logs"
+fi
+
 hr
 echo "2) PORT CHECK"
 if ss -lntp 2>/dev/null | grep -q ":${PORT} "; then
@@ -76,9 +93,14 @@ echo "4) ANTENA-PLAY CREDENTIALS"
 
 CONFIG_PATH_GUESS_1="$(pwd)/configs/antena-play.json"
 CONFIG_PATH_GUESS_2="/root/configs/antena-play.json"
+CONFIG_PATH_GUESS_3=""
+if [[ -n "${CONFIGS_MOUNT}" ]]; then
+  CONFIG_PATH_GUESS_3="${CONFIGS_MOUNT}/antena-play.json"
+fi
 CONFIG_PATH=""
 if [[ -f "${CONFIG_PATH_GUESS_1}" ]]; then CONFIG_PATH="${CONFIG_PATH_GUESS_1}"; fi
 if [[ -z "${CONFIG_PATH}" && -f "${CONFIG_PATH_GUESS_2}" ]]; then CONFIG_PATH="${CONFIG_PATH_GUESS_2}"; fi
+if [[ -z "${CONFIG_PATH}" && -n "${CONFIG_PATH_GUESS_3}" && -f "${CONFIG_PATH_GUESS_3}" ]]; then CONFIG_PATH="${CONFIG_PATH_GUESS_3}"; fi
 
 if [[ -n "${CONFIG_PATH}" ]]; then
   echo "Found ${CONFIG_PATH}"
@@ -112,7 +134,8 @@ PY
   fi
 else
   echo "WARN: could not find configs/antena-play.json in common locations."
-  echo "      Ensure you run docker with a bind mount: -v ./configs:/app/configs"
+  echo "      Ensure you run docker with a bind mount: -v <host_configs_dir>:/app/configs"
+  echo "      Or restore the file into the detected mount: ${CONFIGS_MOUNT:-<unknown>}"
 fi
 
 hr
@@ -120,6 +143,7 @@ echo "4b) CACHE FILE (possible OOM cause)"
 CACHE_PATH=""
 if [[ -f "$(pwd)/configs/cache.json" ]]; then CACHE_PATH="$(pwd)/configs/cache.json"; fi
 if [[ -z "${CACHE_PATH}" && -f "/root/configs/cache.json" ]]; then CACHE_PATH="/root/configs/cache.json"; fi
+if [[ -z "${CACHE_PATH}" && -n "${CONFIGS_MOUNT}" && -f "${CONFIGS_MOUNT}/cache.json" ]]; then CACHE_PATH="${CONFIGS_MOUNT}/cache.json"; fi
 if [[ -n "${CACHE_PATH}" ]]; then
   ls -lh "${CACHE_PATH}" | sed 's/^/  /'
   python3 - <<'PY' "${CACHE_PATH}" 2>/dev/null || true
