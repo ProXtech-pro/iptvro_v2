@@ -40,29 +40,42 @@ Before running this project, you must have Deno installed. You can download it
 See the [wiki](https://github.com/redmusicxd/iptvro_v2/wiki) for API
 documentation
 
-To use this project, run the following command:
+This service exposes a simple HTTP API.
 
-`deno run --allow-read --allow-write --allow-env --allow-net src/index.ts`
+Default URL (Docker): `http://127.0.0.1:8090`
 
-A `configs` dir will then be created and inside it multiple .json files for each
-module(provider) where you can input the appropriate credentials.
+### Install (Docker image)
 
-### Docker
-
-Pull the image
+Pull the image:
 
 `docker pull ghcr.io/rednblkx/iptvro_v2:main`
 
-Run it
+Run it:
 
-`docker run -it --init -p 8090:3000 -v ./logs:/app/logs -v ./configs:/app/configs ghcr.io/rednblkx/iptvro_v2:main`
+`docker run -d --name iptvro --restart unless-stopped --init -p 8090:3000 -v ./logs:/app/logs -v ./configs:/app/configs ghcr.io/rednblkx/iptvro_v2:main`
 
 As the image runs as non-root user (UID 1000, GID 1000), you need to make sure
-the `configs` and `logs` directories have the right permissions.
+the `configs` and `logs` directories have the right permissions:
 
-The following command should ensure they have the right permissions
+`mkdir -p configs logs && chown -R 1000:1000 configs logs`
 
-`chown -R 1000:1000 configs; chown -R 1000:1000 logs`
+### Install (build from git) – recommended for VPS
+
+This repository includes a one-command installer that builds a local image and runs it:
+
+`git clone https://github.com/ProXtech-pro/iptvro_v2.git && cd iptvro_v2`
+
+`PORT=8090 NAME=iptvro CACHE_MAX_ENTRIES=2000 bash scripts/vps_reinstall.sh`
+
+Then run diagnostics:
+
+`bash scripts/check_iptv.sh 8090`
+
+### Install (Deno, without Docker)
+
+`deno run --allow-read --allow-write --allow-env --allow-net src/index.ts`
+
+On first run, a `configs/` dir will be created with one `.json` per provider.
 
 ### VPS troubleshooting / reinstall (Docker)
 
@@ -124,6 +137,102 @@ What to do:
 - Use a VPN/proxy with residential egress (or run this app from your home connection).
 
 Note: wrong credentials usually return HTTP 401, not 403.
+
+---
+
+## How to access Live channels
+
+1) List supported modules:
+
+`GET /modules`
+
+2) (Recommended) refresh channel list after login:
+
+`GET /<module>/updatechannels`
+
+0) If the module requires authentication, login first:
+
+`POST /<module>/login` (JSON body can be `{}` to use credentials from config, or `{ "username": "...", "password": "..." }`)
+
+3) Get the live channel list (JSON):
+
+`GET /<module>/live`
+
+4) IPTV playlist (M3U) for all live channels in that module:
+
+`GET /<module>/live/index.m3u8`
+
+Use this URL directly in IPTV players (VLC, Kodi, IPTV Smarters, etc.).
+
+5) One channel stream (HLS):
+
+`GET /<module>/live/<channel>/index.m3u8`
+
+6) Open the built-in web player:
+
+`GET /<module>/live/<channel>/index.m3u8/player`
+
+Notes:
+
+- Some providers return HLS playlists that require rewriting. You can request playlist rewriting via:
+	`GET /<module>/live/<channel>/index.m3u8?cors=1`
+- The service also provides a simple CORS proxy endpoint:
+	`/cors/<url>`
+
+Example (AntenaPlay on port 8090):
+
+- `http://<server-ip>:8090/antena-play/live/index.m3u8`
+- `http://<server-ip>:8090/antena-play/live/antena1/index.m3u8`
+
+---
+
+## How to access VOD
+
+1) List shows for a module:
+
+`GET /<module>/vod`
+
+2) Get episodes for one show:
+
+`GET /<module>/vod/<showId>`
+
+3) Get one episode stream (JSON):
+
+`GET /<module>/vod/<showId>/<episodeId>`
+
+4) Get one episode as HLS playlist (for players):
+
+`GET /<module>/vod/<showId>/<episodeId>/index.m3u8`
+
+5) Open the built-in web player:
+
+`GET /<module>/vod/<showId>/<episodeId>/index.m3u8/player`
+
+Tip: You can discover `<showId>` and `<episodeId>` by calling `/vod` and then `/vod/<showId>`.
+
+Example (AntenaPlay on port 8090):
+
+- `http://<server-ip>:8090/antena-play/vod`
+
+---
+
+## Module info
+
+`GET /<module>` returns basic info about the module and the cached channel list (`chList`).
+
+## Caching
+
+The service stores some cached data in `configs/cache.json`. To avoid memory issues on long-running VPS deployments, use the environment variable:
+
+- `CACHE_MAX_ENTRIES` (default 2000)
+
+You can flush cache via:
+
+- `GET /<module>/clearcache` or `GET /clearcache`
+
+## Security note
+
+This API does not implement authentication for clients. If you expose it to the public internet, anyone who can reach it can use your configured provider credentials. Prefer keeping it private (LAN/VPN) or putting it behind a reverse proxy with authentication.
 
 ## Permissions
 
