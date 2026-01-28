@@ -10,49 +10,61 @@ const router = new Router();
 router.post(
   `/login`,
   async (context) => {
-    let authTokens = [];
-    logger("login", `login request for module '${context.params.module}'`);
-    const mod: ModuleType = new (await import(
-      `${Deno.cwd()}/src/modules/${context.params.module}.ts`
-    )).default();
-    const config = await mod.getAuth();
-    const result = await (context.request.body({ type: "json" })).value;
+    const moduleId = context.params.module;
+    try {
+      let authTokens: string[] = [];
+      logger("login", `login request for module '${moduleId}'`);
 
-    logger(
-      "login",
-      `'${context.params.module}' login attempt with username ${
-        result.username
-          ? result.username + " from request"
-          : config.username + " from file (request empty)"
-      }`,
-    );
-    authTokens = await Loader.login(
-      context.params.module!,
-      result.username || config.username,
-      result.password || config.password,
-    );
-    const hasValidToken = Array.isArray(authTokens) && Boolean(authTokens[0]);
-    if (hasValidToken) {
+      const mod: ModuleType = new (await import(
+        `${Deno.cwd()}/src/modules/${moduleId}.ts`
+      )).default();
+      const config = await mod.getAuth();
+      const result = await (context.request.body({ type: "json" })).value;
+
       logger(
         "login",
-        `'${context.params.module}' login success`,
+        `'${moduleId}' login attempt with username ${
+          result.username
+            ? result.username + " from request"
+            : config.username + " from file (request empty)"
+        }`,
       );
-      config.authTokens = authTokens;
-      config.lastupdated = new Date();
-      await mod.setAuth(config);
-      context.response.body = new Response(
-        "SUCCESS",
-        context.params.module,
-        authTokens,
+
+      authTokens = await Loader.login(
+        moduleId!,
+        result.username || config.username,
+        result.password || config.password,
       );
-    } else {
+
+      const hasValidToken = Array.isArray(authTokens) && Boolean(authTokens[0]);
+      if (hasValidToken) {
+        logger("login", `'${moduleId}' login success`);
+        config.authTokens = authTokens;
+        config.lastupdated = new Date();
+        await mod.setAuth(config);
+        context.response.body = new Response("SUCCESS", moduleId, authTokens);
+        return;
+      }
+
       context.response.status = 401;
       context.response.body = new Response(
         "ERROR",
-        context.params.module,
+        moduleId,
         null,
         undefined,
-        `Authentication failed for module '${context.params.module}' (token missing)` ,
+        `Authentication failed for module '${moduleId}' (token missing)`,
+      );
+    } catch (error) {
+      const msg = error?.message || error?.toString?.().substring(0, 200) ||
+        "Login failed";
+      logger("login", msg, true);
+      context.response.status = 500;
+      context.response.body = new Response(
+        "ERROR",
+        moduleId,
+        null,
+        undefined,
+        msg,
       );
     }
   },
