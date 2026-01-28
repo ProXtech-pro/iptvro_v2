@@ -182,6 +182,23 @@ print({
 PY
 
 hr
+echo "5b) ANTENA-PLAY UPSTREAM CHECK (direct to restapi.antenaplay.ro; dummy creds)"
+echo "Tip: if this is 403 from a VPS but 401/200 from home, the VPS IP range is likely blocked."
+
+UPSTREAM_HEADERS=(
+  -H 'content-type: application/x-www-form-urlencoded'
+  -H 'api-request-source: ios'
+  -H 'user-agent: AntenaPlay/3.2.5 (ro.antenaplay.app; build:88; iOS 12.5.1) Alamofire/4.9.1'
+)
+UPSTREAM_DATA='email=test@example.com&password=wrong'
+UPSTREAM_URL='https://restapi.antenaplay.ro/v1/auth/login'
+
+UPSTREAM_V4="$(curl -4 -sS -o /dev/null -w '%{http_code}' --connect-timeout 6 --max-time 12 -X POST "${UPSTREAM_URL}" "${UPSTREAM_HEADERS[@]}" --data "${UPSTREAM_DATA}" || true)"
+UPSTREAM_V6="$(curl -6 -sS -o /dev/null -w '%{http_code}' --connect-timeout 6 --max-time 12 -X POST "${UPSTREAM_URL}" "${UPSTREAM_HEADERS[@]}" --data "${UPSTREAM_DATA}" || true)"
+echo "Upstream IPv4 HTTP: ${UPSTREAM_V4:-<failed>}"
+echo "Upstream IPv6 HTTP: ${UPSTREAM_V6:-<failed>}"
+
+hr
 echo "6) ANTENA-PLAY UPDATE CHANNELS"
 UC_CODE="$(curl -sS -o /tmp/iptv_uc.json -w '%{http_code}' "${BASE_URL}/antena-play/updatechannels" || true)"
 echo "HTTP ${UC_CODE}"

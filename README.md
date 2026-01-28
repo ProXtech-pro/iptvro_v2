@@ -114,6 +114,17 @@ This repo ships an example file you can copy:
 - Validate:
 	- `curl -sS http://localhost:8090/antena-play/live | head`
 
+#### AntenaPlay 403 on VPS (common)
+
+If `/antena-play/login` fails with an error like `no token, status 403` (or the upstream check in `scripts/check_iptv.sh` shows HTTP 403), AntenaPlay is likely blocking your VPS/datacenter IP range.
+
+What to do:
+
+- Try a different VPS provider/region (ideally different ASN), then re-run `bash scripts/check_iptv.sh 8090`.
+- Use a VPN/proxy with residential egress (or run this app from your home connection).
+
+Note: wrong credentials usually return HTTP 401, not 403.
+
 ## Permissions
 
 Deno needs the following permissions to run this project:
